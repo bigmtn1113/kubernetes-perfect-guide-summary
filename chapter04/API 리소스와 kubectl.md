@@ -14,3 +14,19 @@ kubectl은 매니페스트 파일 정보를 바탕으로 쿠버네티스 마스�
 
 쿠버네티스 API는 일반적으로 RESTful API로 구현  
 kubectl을 사용하지 않고 각종 프로그램 언어의 RESTful API 라이브러리나 curl 등의 명령어 도구를 사용하여 직접 API를 호출함으로써 쿠버네티스 관리 가능
+
+<br/>
+
+## 쿠버네티스와 리소스
+쿠버네티스가 취급하는 리소스 목록 다섯 가지 카테고리
+
+- **Workload API** - 클러스터 위에서 컨테이너를 기동하기 위해 사용되는 리소스
+- **Service API** - 컨테이너 서비스 디스커버리와 클러스터 외부에서도 접속이 가능한 엔드포인트 등을 제공하는 리소스
+- **Config and Storage API** - 설정과 기밀 데이터를 컨테이너에 담거나 영구 볼륨을 제공하는 리소스
+- **Cluster API** - 클러스터 자체 동작을 정의하는 리소스
+- **메타데이터 API** - 클러스터 내부의 다른 리소스 동작을 제어하기 위한 리소스
+
+<hr>
+
+## 참고
+- **Kubernetes API** - https://kubernetes.io/docs/reference/kubernetes-api/
