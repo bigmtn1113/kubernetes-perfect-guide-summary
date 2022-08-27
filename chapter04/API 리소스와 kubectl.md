@@ -170,6 +170,20 @@ kubectl apply -f ./dir -R
   - 가독성이 높아진다는 장점이 있지만, 적용 순서 제어가 어렵다는 단점 존재
   - ex) ./microservice-A, ./microservice-B, ./microservice-C
 
+### Annotation과 Label
+#### Annotation
+metadata.annotations로 설정할 수 있는 메타데이터  
+리소스에 대한 메모 같은 것
+
+#### Label
+metadata.labels에 설정할 수 있는 메타데이터  
+리소스를 구분하기 위한 정보 같은 것  
+실수로 레이블을 지정하면 레이블 값이 충돌하여 예상하지 못한 문제 발생 가능성 존재  
+- ReplicaSet - 레이블에 부여된 파드 수를 계산하여 레플리카 수 관리
+  - 문제: 기존에 생성된 Pod 정지
+- LoadBalancer - 레이블 기준으로 목적지 파드 결정
+  - 문제: 다른 Pod에 트래픽 전송
+
 <hr>
 
 ## 참고
