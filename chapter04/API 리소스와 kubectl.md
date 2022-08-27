@@ -114,6 +114,62 @@ kubectl delete -f sample-pod.yaml --grace-period 0 --force
 kubectl apply -f sample-pod.yaml
 ```
 
+### Pod 재기동
+Deployment 등의 리소스와 연결되어 있는 모든 파드는 재기동이 가능하나, 리소스와 연결되어 있지 않은 단독 파드는 재기동 불가
+
+```bash
+# 리소스 생성
+kubectl apply -f sample-deployment.yaml
+kubectl apply -f sample-pod.yaml
+
+# Deployment 리소스의 모든 파드 재기동
+kubectl rollout restart deployment sample-deployment
+
+# Pod 재기동 실패
+kubectl rollout restart pod sample-pod
+```
+
+### 매니페스트 파일 설계
+한 개의 매니페스트 파일에 여러 리소스를 정의하거나 여러 매니페스트 파일을 동시에 적용 가능
+
+#### 하나의 매니페스트 파일에 여러 리소스 정의
+실행 순서를 정확히 지켜야 하거나 리소스 간의 결합도를 높이고 싶을 때 사용  
+공통으로 사용하는 설정 파일(ConfigMap)이나 패스워드(Secret) 등은 별도 매니페스트로 분리하는 것이 용이
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+...
+---
+apiVersion: v1
+kind: Service
+...
+```
+
+#### 여러 매니페스트 파일을 동시에 적용
+디렉터리 안에 적용하고 싶은 여러 매니페스트 파일을 배치해 두고 kubectl apply 명령어를 실행할 때 그 디렉터리를 지정  
+파일명순으로 적용되므로 순서 제어를 원할 시 파일명 앞에 인덱스 번호 지정과 같은 방법 필요  
+-R 옵션을 사용하면 재귀적으로 디렉터리 안에 존재하는 매니페스트 파일 적용 가능
+
+```bash
+# 디렉터리를 지정하여 리소스 생성
+kubectl apply -f ./dir
+
+# 지정한 디렉터리 내의 파일을 재귀적으로 적용
+kubectl apply -f ./dir -R
+```
+
+#### 매니페스트 파일 설계 방침
+- **시스템 전체를 한 개의 디렉터리로 통합하는 패턴**
+  - 규모가 크지 않을 경우엔 시스템 전체를 구성하기 위한 모든 마이크로서비스의 매니페스트 파일을 하나의 디렉터리로 통합
+  - ex) ./whole-system
+- **시스템 전체를 특정 서브 시스템으로 분리하는 패턴**
+  - 거대한 시스템인 경우엔 분리가 가능하다면 서브 시스템이나 부서별로 디렉터리를 나눠서 사용
+  - ex) ./whole-system/subsystem-A
+- **마이크로서비스별로 디렉터리를 나누는 패턴**
+  - 가독성이 높아진다는 장점이 있지만, 적용 순서 제어가 어렵다는 단점 존재
+  - ex) ./microservice-A, ./microservice-B, ./microservice-C
+
 <hr>
 
 ## 참고
