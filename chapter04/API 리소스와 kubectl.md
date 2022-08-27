@@ -60,7 +60,32 @@ ex)
 <br/>
 
 ## kubectl
+수동으로 쿠버네티스를 조작하는 경우엔 CLI 도구인 kubectl을 사용하는 것이 일반적
 
+### 인증 정보와 컨텍스트(config)
+kubectl이 쿠버네티스 마스터와 통신할 때는 접속 대상의 서버 및 인증 정보 등이 필요  
+kubectl은 kubeconfig(~/.kube/config)에 쓰여 있는 정보를 사용하여 접속
+
+kubeconfig에서 구체적으로 설정이 이루어지는 부분은 clusters/users/contexts 세 가지  
+이 세 가지 설정 항목은 모두 배열로 되어 있어 여러 대상 등록 가능
+- clusters
+  - 접속 대상 클러스터 정보
+- users
+  - 인증 정보
+- contexts
+  - cluster와 user, namespace
+
+context를 전환하여 여러 환경을 여러 권한으로 조작 가능  
+```bash
+# context 목록 표시
+kubectl config get-contexts
+
+# context 전환
+kubectl config use-context prd-admin
+
+# 현재 context 표시
+kubectl config current-context
+```
 
 <hr>
 
