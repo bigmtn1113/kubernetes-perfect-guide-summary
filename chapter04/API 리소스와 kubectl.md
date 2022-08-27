@@ -87,6 +87,33 @@ kubectl config use-context prd-admin
 kubectl config current-context
 ```
 
+### 매니페스트와 리소스 생성/삭제/갱신
+```bash
+# 리소스 생성
+kubectl create -f sample-pod.yaml
+
+# Pod 목록 표시
+kubectl get pods
+
+# 리소스 삭제
+kubectl delete -f sample-pod.yaml
+
+# 특정 리소스만 삭제
+kubectl delete pod sample-pod
+
+# 특정 리소스 종류 모두 삭제
+kubectl delete pod --all
+
+# 리소스 삭제(삭제 완료 대기)
+kubectl delete -f sample-pod.yaml --wait
+
+# 리소스 즉시 강제 삭제
+kubectl delete -f sample-pod.yaml --grace-period 0 --force
+
+# 리소스 업데이트
+kubectl apply -f sample-pod.yaml
+```
+
 <hr>
 
 ## 참고
