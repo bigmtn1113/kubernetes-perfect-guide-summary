@@ -50,6 +50,18 @@ kubectl을 사용하지 않고 각종 프로그램 언어의 RESTful API 라이�
 - **default**
   - 기본 네임스페이스
 
+관리형 서비스나 구축 도구로 구축된 경우 대부분의 쿠버네티스 클러스터는 RBAC(Role-Based Access Control)이 기본값으로 활성화된 상태  
+RBAC은 클러스터 조작에 대한 권한을 네임스페이스별로 구분할 수 있고 네트워크 정책과 함께 사용하여 네임스페이스 간의 통신을 제어할 수 있는 구조
+
+ex)  
+클러스터 관리자 - default, kube-system, prd  
+애플리케이션 개발자 - prd
+
+<br/>
+
+## kubectl
+
+
 <hr>
 
 ## 참고
