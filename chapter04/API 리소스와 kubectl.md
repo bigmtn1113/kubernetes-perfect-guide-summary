@@ -184,6 +184,75 @@ metadata.labels에 설정할 수 있는 메타데이터
 - LoadBalancer - 레이블 기준으로 목적지 파드 결정
   - 문제: 다른 Pod에 트래픽 전송
 
+### diff
+로컬 매니페스트와 쿠버네티스 등록 정보 비교 출력  
+'실제로 쿠버네티스 클러스터에 등록된 정보'와 '로컬에 있는 매니페스트' 내용의 차이 파악 필요
+```bash
+# 클러스터 등록 정보와 매니페스트의 차이점 확인
+kubectl diff -f sample-pod.yaml
+```
+
+### api-resources
+모든 리소스 종류 표시
+```bash
+kubectl api-resources
+```
+
+### get
+리소스 정보 가져오기
+```bash
+# Pod 목록 상세히 표시
+kubectl get pods -o wide
+
+# YAML 형식으로 Pod의 상세 정보 목록 출력
+kubectl get pods -o yaml
+
+# JSON Path로 Pod명 표시
+kubectl get pods sample-pod -o jsonpath="{.metadata.name}"
+
+# 생성된 거의 모든 종류의 리소스 표시
+kubectl get all
+
+# 리소스 상태 변화를 출력
+kubectl get pods --watch
+```
+
+### describe
+리소스 상세 정보 가져오기
+```bash
+# Pod 상세 정보 표시
+kubectl describe pod sample-pod
+```
+
+### top
+실제 리소스 사용량 확인
+
+kubectl describe 명령어로 확인할 수 있는 리소스 사용량은 쿠버네티스가 Pod에 확보한 값을 표시  
+실제 Pod 내부의 컨테이너가 사용하고 있는 리소스 사용량은 kubectl top 명령어를 사용하여 확인 가능  
+리소스 사용량은 Node와 Pod 단위
+```bash
+# Node 리소스 사용량 확인
+kubectl top node
+
+# Pod 리소스 사용량 확인
+kubectl top pod
+
+# Container 리소스 사용량 확인
+kubectl top pod --containers
+```
+
+### exec
+컨테이너에서 명령어 실행
+
+가상 터미널을 생성(-t)하고, 표준 입출력을 패스스루(-i)하면서 /bin/sh를 기동하면 마치 컨테이너에 SSH로 로그인한 것과 같은 상태로 접근 가능
+```bash
+# Pod 내부의 컨테이너에서 /bin/bash 실행
+kubectl exec -it sample-pod -- /bin/bash
+
+# 여러 컨테이너에 존재하는 Pod의 특정 컨테이너에서 /bin/ls 실행
+kubectl exec -it sample-pod -c nginx-container -- /bin/ls
+```
+
 <hr>
 
 ## 참고
