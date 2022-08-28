@@ -267,7 +267,7 @@ curl -I localhost:8888
 ```
 
 Pod명이 아닌 Deployment 리소스나 Service 리소스에 연결되는 Pod에도 포트 포워딩 가능  
-포트 포워딩에 의한 통신은 여러 Pod에 분산하여 전송되는 것이 아니라 하나의 Pod로만 전송
+포트 포워딩에 의한 통신은 여러 Pod에 분산하여 전송되는 것이 아니라 하나의 Pod로만 전송  
 따라서 kubectl port-forward 실행 중에 통신할 수 있는 Pod는 항상 같은 하나의 Pod
 ```bash
 # sample-deployment에 연결된 Pod 중 하나의 Pod로 포트 포워딩
