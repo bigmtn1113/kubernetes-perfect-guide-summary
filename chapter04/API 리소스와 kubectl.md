@@ -253,6 +253,30 @@ kubectl exec -it sample-pod -- /bin/bash
 kubectl exec -it sample-pod -c nginx-container -- /bin/ls
 ```
 
+### port-forward
+로컬 머신에서 Pod로 포트 포워딩
+
+```bash
+kubectl apply -f sample-pod.yml
+
+# localhost:8888에서 Pod의 80/TCP 포트로 전송
+kubectl port-forward sample-pod 8888:80
+
+# 다른 터미널에서 접속 확인
+curl -I localhost:8888
+```
+
+Pod명이 아닌 Deployment 리소스나 Service 리소스에 연결되는 Pod에도 포트 포워딩 가능  
+포트 포워딩에 의한 통신은 여러 Pod에 분산하여 전송되는 것이 아니라 하나의 Pod로만 전송
+따라서 kubectl port-forward 실행 중에 통신할 수 있는 Pod는 항상 같은 하나의 Pod
+```bash
+# sample-deployment에 연결된 Pod 중 하나의 Pod로 포트 포워딩
+kubectl port-forward deployment/sample-deployment 8888:80
+
+# sample-service에 연결된 Pod 중 하나의 Pod로 포트 포워딩
+kubectl port-forward service/sample-service 8888:80
+```
+
 <hr>
 
 ## 참고
