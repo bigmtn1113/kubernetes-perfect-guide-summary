@@ -277,6 +277,39 @@ kubectl port-forward deployment/sample-deployment 8888:80
 kubectl port-forward service/sample-service 8888:80
 ```
 
+### logs
+컨테이너 로그 확인
+
+표준 출력과 표준 에러 출력으로 출력된 컨테이너(애플리케이션) 로그는 kubectl logs 명령어를 사용하여 확인 가능  
+여러 컨테이너가 있을 경우, 하나의 컨테이너 로그만 출력 가능
+```bash
+# Pod 내의 컨테이너 로그 출력
+kubectl logs sample-pod
+
+# 여러 컨테이너가 존재하는 Pod에서 특정 컨테이너 로그 출력
+kubectl logs sample-pod -c nginx-container
+
+# 실시간 로그 출력
+kubectl logs -f sample-pod
+
+# 최근 1시간 이내, 10건의 로그를 타임스탬프와 함께 출력
+kubectl logs --since=1h --tail=10 --timestamps=true sample-pod
+
+# 특정 레이블을 가진 모든 Pod의 로그 출력
+kubectl logs --selector app=sample-app
+```
+
+### cp
+컨테이너와 로컬 머신 간의 파일 복사
+
+```bash
+# 컨테이너 파일을 로컬 머신에 복사
+kubectl cp sample-pod:/etc/hostname ./hostname
+
+# 로컬 파일을 컨테이너에 복사
+kubectl cp hostname sample-pod:/tmp/newfile
+```
+
 <hr>
 
 ## 참고
