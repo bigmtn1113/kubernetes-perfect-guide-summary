@@ -103,3 +103,25 @@ kubectl exec -it sample-pod -- /bin/bash
 kubectl exec -it sample-2pod -c nginx-container -- /bin/ls
 ```
 
+### ENTRYPOINT/CMD 명령과 command/args
+도커 이미지의 ENTRYPOINT = K8s yaml의 command  
+도커 이미지의 CMD = K8s yaml의 args
+
+sample-entrypoint.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-entrypoint
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+    command: ["/bin/sleep"]
+    args: ["3600"]
+```
+
+### Pod명 제한
+- 영문 소문자와 숫자
+- '-' 또는 '.'
+- 시작과 끝은 영문 소문자
