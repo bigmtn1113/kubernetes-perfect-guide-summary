@@ -56,3 +56,50 @@ ex)
   - Redis 자체 형식 메트릭을 소프트웨어 형식에 맞게 변환해 주는 컨테이너
 
 ### Pod 생성
+sample-pod.yaml  
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+sepc:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 파드 생성
+kubectl apply -f sample-pod.yaml
+```
+
+### 두 개의 컨테이너를 포함한 Pod 생성
+sample-2pod.yaml  
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-2pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+  - name: redis-container
+    image: redis:3.2
+```
+```bash
+# 두 개의 컨테이너를 포함한 파드 생성
+kubectl apply -f sample-2pod.yaml
+
+# 파드 확인(컨테이너 수가 2개인 것 확인)
+kubectl get pods
+```
+
+### 컨테이너 로그인과 명령어 실행
+```bash
+# 컨테이너 로그인. 컨테이너에서 /bin/bash 실행
+kubectl exec -it sample-pod -- /bin/bash
+
+# 특정 컨테이너에서 ls 명령어 실행
+kubectl exec -it sample-2pod -c nginx-container -- /bin/ls
+```
+
