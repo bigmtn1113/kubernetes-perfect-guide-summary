@@ -156,3 +156,103 @@ kubectl exec -it sample-hostnetwork -- hostname
 kubectl exec -it sample-hostnatwork -- cat /etc/resolv.conf
 ```
 
+### Pod DNS 설정과 Service Discovery
+DNS 서버에 관한 설정은 spec.dnsPolicy에서 설정  
+일반적으로 파드는 클러스터 내부 DNS를 사용하여 이름을 해석  
+서비스 디스커버리나 클러스터 내부 로드 밸런싱에서 사용 목적
+
+#### ClusterFirst(기본값)
+클러스터 내부의 DNS 서버에 질의를 하고, 해석이 안 되는 도메인에 대해서는 업스트림 DNS 서버에 질의
+
+sample-dnspolicy-clusterfirst.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-dnspolicy-clusterfirst
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 컨테이너 내부의 DNS 설정 파일 표시
+kubectl exec -it sample-dnspolicy-clusterfirst -- cat /etc/resolv.conf
+
+# 클러스터 내부의 DNS Service에 할당된 IP 주소(컨테이너 내부의 DNS 설정 파일에 표시된 nameserver IP와 동일) 확인
+kubectl get service kube-dns -n kube-system
+```
+
+#### None
+클러스터 외부 DNS 서버 참조  
+정적으로 외부 DNS 서버만 설정하면 클러스태 내부 DNS를 사용한 서비스 디스커버리는 사용 불가
+
+sample-dnspolicy-none.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-dnspolicy-none
+spec:
+  dnsPolicy: None
+  dnsConfig:
+    nameservers:
+    - 8.8.8.8
+    - 8.8.4.4
+    searches:
+    - example.com
+    options:
+    - name: ndots
+      value: "5"
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 컨테이너 내부의 DNS 설정 파일 표시. 설정값 확인
+kubectl exec -it sample-dnspolicy-none -- cat /etc/resolv.conf
+```
+
+#### Default
+K8s 노드의 DNS 설정을 그대로 상속  
+dnsPolicy의 기본값은 Default가 아닌 ClusterFirst  
+클러스터 내부의 DNS를 사용한 서비스 디스커버리 사용 불가
+
+sample-dnspolicy-default.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-dnspolicy-default
+spec:
+  dnsPolicy: Default
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 컨테이너 내부의 DNS 설정 파일 표시. K8s 노드의 /etc/resolv.conf의 내용과 동일
+kubectl exec -it sample-dnspolicy-default -- cat /etc/resolv.conf
+```
+
+#### ClusterFirstWithHostNet
+hostNetwork를 사용한 파드에 클러스터 내부의 DNS를 참조하고 싶을 경우에 설정  
+hostNetwork를 사용하는 경우 K8s 노드의 네트워크 설정이 사용되므로 명시적으로 ClusterFirstWithHostNet을 지정
+
+sample-dnspolicy-clusterfirstwithhostnet.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-dnspolicy-clusterfirstwithhostnet
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 컨테이너 내부의 DNS 설정 파일 표시. ClusterFirst로 설정했을 때와 동일
+kubectl exec -it sample-dnspolicy-clusterfirstwithhostnet -- cat /etc/resolv.conf
+```
