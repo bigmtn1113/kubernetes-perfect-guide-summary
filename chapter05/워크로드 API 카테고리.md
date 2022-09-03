@@ -256,3 +256,48 @@ spec:
 # 컨테이너 내부의 DNS 설정 파일 표시. ClusterFirst로 설정했을 때와 동일
 kubectl exec -it sample-dnspolicy-clusterfirstwithhostnet -- cat /etc/resolv.conf
 ```
+
+### /etc/hosts
+리눅스 운영체제에서는 DNS로 호스트명을 해석하기 전에 /etc/hosts 파일로 정적 호스트명을 해석  
+spec.hostAliases로 지정해 파드 내부 모든 컨테이너의 /etc/hosts 변경
+
+sample-hostaliases.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-hostaliases
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+  hostAliases:
+  - ip: 8.8.8.8
+    hostnames:
+    - google-dns
+    - google-public-dns
+```
+```bash
+# Entries added by HostAliases 내용 부분 확인
+kubectl exec -it sample-hostaliases -- cat /etc/hosts
+```
+
+### 작업 디렉터리 설정
+컨테이너에서 동작하는 애플리케이션의 작업 디렉터리는 도커 파일의 WORKDIR 명령 설정을 따르지만 spec.containers[].workingDir로 덮어쓰기 가능
+
+sample-workingdir.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-workingdir
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+    workingDir: /tmp
+```
+```bash
+# 출력 결과 /tmp 확인
+kubectl exec -it sample-workingdir -- pwd
+```
