@@ -125,3 +125,34 @@ spec:
 - 영문 소문자와 숫자
 - '-' 또는 '.'
 - 시작과 끝은 영문 소문자
+
+### 호스트의 네트워크 구성을 사용한 Pod 기동
+Pod에 할당된 IP 주소는 K8s 노드의 호스트 IP 주소와 범위가 달라 외부에서 볼 수 없는 IP 주소가 할당됨  
+호스트의 네트워크를 사용하는 설정(spec.hostNetwork)을 활성화하면 호스트상에서 프로세스를 기동하는 것과 같은 네트워크 구성(IP 주소, DNS 설정, host 설정 등)으로 파드 기동 가능  
+호스트 측의 네트워크 감시 또는 제어와 같은 특수한 애플리케이션 등에서만 사용 권장
+
+sample-hostnetwork.yaml
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-hostnetwork
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:1.16
+```
+```bash
+# 파드의 IP 주소 확인
+kubectl get pod sample-hostnetwork -o wide
+
+# 파드가 기동 중인 노드의 IP 주소 확인(Pod의 IP주소와 같은 것 확인)
+kubectl get node <node명> -o wide
+
+# 파드의 호스트명 확인
+kubectl exec -it sample-hostnetwork -- hostname
+
+# 파드의 DNS 설정 확인
+kubectl exec -it sample-hostnatwork -- cat /etc/resolv.conf
+```
+
