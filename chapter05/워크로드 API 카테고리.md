@@ -437,8 +437,6 @@ kubectl get deployments,replicasets,pods
 이력은 각 레플리카셋의 metadata.annotations[kubernetes.io/change-cause]에 저장  
 레플리카셋의 수정 버전 번호는 metadata.annotations[deployment.kubernetes.io/revision]에 저장
 
-※ --record 옵션은 deprecated될 예정
-
 ```bash
 # 컨테이너 이미지 업데이트
 kubectl set image deployment sample-deployment nginx-container=nginx:1.17 --record
@@ -450,6 +448,10 @@ kubectl rollout status deployment sample-deployment
 # 신규 및 이전 레플리카셋, 신규 파드 확인
 kubectl get deployments,replicasets,pods
 ```
+
+※ --record 옵션은 deprecated 됐으므로 사용 권장하지 않음. 대체 flag 나오기 전까진 다음 방법([디플로이먼트의 롤아웃 기록 확인](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#checking-rollout-history-of-a-deployment)) 사용 권장  
+- 디플로이먼트에 kubectl annotate deployment/sample-deployment kubernetes.io/change-cause="update content"로 주석 작성
+- 수동으로 리소스 매니페스트 편집
 
 ### Deployment 업데이트 조건
 디플로이먼트는 변경이 발생하면 레플리카셋을 생성하는데 '생성된 파드의 내용 변경'이 조건  
