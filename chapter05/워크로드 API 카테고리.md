@@ -450,3 +450,53 @@ kubectl rollout status deployment sample-deployment
 # 신규 및 이전 레플리카셋, 신규 파드 확인
 kubectl get deployments,replicasets,pods
 ```
+
+### Deployment 업데이트 조건
+디플로이먼트는 변경이 발생하면 레플리카셋을 생성하는데 '생성된 파드의 내용 변경'이 조건  
+spec.template에 변경이 있으면 생성된 파드의 설정이 변경되므로 레플리카셋을 신규로 생성하고 롤링 업데이트를 진행
+
+매니페스트를 K8s에 등록한 후 레플리카셋의 정의를 보면 Pod Template Hash를 계산하고 이 값을 사용한 레이블로 관리
+
+```bash
+# pod-template-hash 값은 레플리카셋 이름에 있는 문자열과 동일
+kubectl get replicaset <레플리카셋명> -o yaml
+```
+
+### Rollback
+디플로이먼트가 생성한 기존 레플리카셋은 레플리카 수가 0인 상태로 남아 있으므로 레플리카 수를 변경시켜 다시 사용 가능
+
+변경 이력을 확인할 때는 kubectl rollout history 명령어를 사용  
+CHANGE-CAUSE 부분은 디플로이먼트를 생성할 때 --record 옵션을 사용하면 표시되지만, 아니라면 \<none\> 등으로 표시
+  
+```bash
+# 변경 이력 확인
+kubectl rollout history deployment sample-deployment
+```
+
+해당 수정 버전에 대한 상세한 정보를 가져오려면 --revision 옵션 지정
+  
+```bash
+# 초기 상태의 디플로이먼트
+kubectl rollout history deployment sample-deployment --revision 1
+
+# 한 번 업데이트된 후의 디플로이먼트
+# pod-template-hash, change-cause, image 등 달라진 점 확인
+kubectl rollout history deployment sample-deployment --revision 2
+```
+
+롤백하려면 kubectl rollout undo를 사용  
+명령어의 인수로 버전 번호 지정이 가능하며, 0으로 지정하거나 지정하지 않을 경우(0이 기본값)엔 바로 이전 버전으로 롤백
+  
+```bash
+# 버전 번호를 지정하여 롤백
+kubectl rollout undo deployment sample-deployment --to-revision 1
+
+# 바로 이전 버전으로 롤백
+kubectl rollout undo deployment sample-deployment
+
+# 이전 레플리카셋에서 파드가 기동됨을 확인
+kubectl get replicasets
+```
+
+CI/CD 파이프라인에서 롤백을 하는 경우 kubectl rollout 명령어보다 이전 매니페스트를 다시 kubectl apply 명령어로 실행하여 적용하는 것이 호환성 면에서 더 우수.
+이때 spec.template를 같은 내용으로 되돌렸을 경우 pod-template-hash 값이 같으므로 kubectl rollout처럼 기존에 있었던 레플리카셋의 파드가 기동
