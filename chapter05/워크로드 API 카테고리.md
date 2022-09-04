@@ -602,3 +602,54 @@ kubectl set image deployment sample-deployment-rollingupdate nginx-container=ngi
 # maxUnavailable=1/maxSurge=0일 경우 반대로 진행
 kubectl get replicas --watch
 ```
+
+### 상세 업데이트 파라미터
+Recreate나 RollingUpdate를 사용할 때 다른 파라미터를 설정하여 사용 가능
+
+- minReadySeconds
+  - 최소 대기 시간(초)
+  - 파드가 Ready 상태가 된 다음부터 디플로이먼트 리소스에서 파드 기동이 완료되었다고 판단(다음 파드의 교체가 가능하다고 판단)하기까지의 최소 시간
+- revisionHistoryLimit
+  - 수정 버전 기록 제한
+  - 디플로이먼트가 유지할 레플리카셋 수
+  - 롤백이 가능한 이력 수
+- progressDeadlineSeconds
+  - 진행 기한 시간(초)
+  - Recreate/RollingUpdate 처리 타임아웃 시간
+  - 타임아웃 시간이 경과하면 자동으로 롤백
+
+sample-deployment-params.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-deployment-params
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 3600
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+
+### Deployment Scaling
+디플로이먼트가 관리하는 레플리카셋의 레플리카 수는 레플리카셋과 같은 방법으로 스케일 가능
+
+```bash
+# 매니페스트 이용
+sed -i -e 's|replicas: 3|replicas: 4|' sample-deployment.yaml
+kubectl apply -f sample-deployment.yaml
+
+# kubectl scale 명령어 이용
+kubectl scale deployment sample-deployment --replicas=5
+```
