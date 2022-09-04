@@ -381,3 +381,72 @@ ReplicationController/Deployment/StatefulSet/Job/CronJob에서도 사용 가능
 kubectl scale replicaset sample-rs -- replicas 5
 kubectl get replicaset sample-rs
 ```
+
+<br/>
+
+## Deployment
+여러 레플리카셋을 관리하여 롤링 업데이트나 롤백 등을 구현하는 리소스  
+디플로이먼트가 레플리카셋을 관리하고 레플리카셋이 파드를 관리하는 관계
+
+**디플로이먼트의 롤링 업데이트 구조**  
+1. 신규 레플리카셋 생성
+2. 신규 레플리카셋의 레플리카 수를 단계적으로 증가
+3. 신규 레플리카셋의 레플리카 수를 단계적으로 감소
+4. 2, 3을 반복
+5. 이전 레플리카셋의 레플리카 수를 0으로 유지
+
+신규 레플리카셋에 컨테이너가 기동되었는지와 헬스 체크는 통과했는지를 확인하면서 전환 작업이 진행  
+레플리카셋의 이행 과정에서 파드 수에 대한 상세한 지정도 가능
+
+※ 파드로만 배포한 경우엔 파드에 장애가 발생하면 자동으로 파드가 다시 생성 되지 않으며, 레플리카셋으로만 배포한 경우에는 롤링 업데이트 등의 기능을 사용할 수 없으므로 디플로이먼트 사용 권장
+
+### Deployment 생성
+sample-deployment.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+```bash
+# 업데이트 이력을 저장하는 옵션을 사용하여 디플로이먼트 기동
+kubectl apply -f sample-deployment.yaml --record
+
+# 이력 및 revision 정보 등 확인
+kubectl get replicasets -o yaml | head
+
+# 리소스들 확인
+# 이름을 통해 디플로이먼트가 레플리카셋을, 레플리카셋이 파드를 생성한다는 것 확인 가능
+kubectl get deployments,replicasets,pods
+```
+
+--record을 사용하여 어떤 명령어를 실행하고 업데이트했는지 이력을 저장하면 kubectl rollout에서 롤백 등을 실시할 때 참고 정보로 활용 가능  
+이력은 각 레플리카셋의 metadata.annotations[kubernetes.io/change-cause]에 저장  
+레플리카셋의 수정 버전 번호는 metadata.annotations[deployment.kubernetes.io/revision]에 저장
+
+※ --record 옵션은 deprecated될 예정
+
+```bash
+# 컨테이너 이미지 업데이트
+kubectl set image deployment sample-deployment nginx-container=nginx:1.17 --record
+
+# 디플로이먼트 업데이트 상태 확인
+kubectl rollout status deployment sample-deployment
+
+# 리소스들 확인
+# 신규 및 이전 레플리카셋, 신규 파드 확인
+kubectl get deployments,replicasets,pods
+```
