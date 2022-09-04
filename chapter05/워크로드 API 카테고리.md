@@ -301,3 +301,83 @@ spec:
 # 출력 결과 /tmp 확인
 kubectl exec -it sample-workingdir -- pwd
 ```
+
+<br/>
+
+## ReplicaSet/ReplicationController
+파드의 레플리카를 생성하고 지정한 파드 수를 유지하는 리소스  
+레플리케이션 컨트롤러가 레플리카셋으로 이름이 변경되면서 일부 기능이 추가됐고 레플리카셋을 주로 사용하는 추세
+
+### ReplicaSet 생성
+sample-rs.yaml
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: sample-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+```bash
+# 세 개의 파드 기동 확인
+kubectl get replicaset sample-rs -o wide
+
+# 레플리카셋이 파드 관리에 사용되는 레이블을 지정하여 파드 목록 표시
+# 세 개의 파드 기동 확인. 각각 다른 노드에 파드가 배치돼 노드 장애 발생 시 서비스에 미치는 영향 최소화
+kubectl get pods -l app=sample-app -o wide
+```
+
+### Pod 정지와 self-healing
+레플리카셋에서는 노드나 파드에 장애가 발생했을 때 지정한 파드 수를 유지하기 위해 다른 노드에서 파드를 기동시켜 주므로 장애 시 많은 영향을 받지 않음
+
+```bash
+# sample-rs에 기동 중인 파드 하나 종료
+kubectl delete pod <pod명>
+
+# 파드가 새로 생성되는 것 확인
+kubectl get pods -o wide
+
+# 레플리카셋 파드 수 증감 이력 확인
+kubectl describe replicaset sample-rs
+```
+
+### ReplicaSet과 Label
+레플리카셋은 K8s가 파드를 모니터링하여 파드 수를 조정  
+모니터링은 특정 레이블을 가진 파드 수를 계산하는 형태
+
+레플리카 수가 부족한 경우 매니페스트에 기술된 spec.template로 파드를 생성  
+레플리카 수가 많을 경우 레이블이 일치하는 파드 중 하나를 삭제
+
+### ReplicaSet과 Scaling
+- 매니페스트를 수정하여 kubectl apply -f 명령어 실행
+- kubectl scale 명령어를 사용하여 스케일 처리
+
+#### kubectl apply
+IaC를 구현하기 위해서라도 이 방법을 권장
+
+```bash
+# 레플리카 수를 3에서 4로 변경
+sed -i -e 's|replicas: 3|replicas: 4|' sample-rs.yaml
+
+kubectl apply -f sample-rs.yaml
+kubectl get replicaset sample-rs
+```
+
+#### kubectl scale
+ReplicationController/Deployment/StatefulSet/Job/CronJob에서도 사용 가능
+
+```bash
+kubectl scale replicaset sample-rs -- replicas 5
+kubectl get replicaset sample-rs
+```
