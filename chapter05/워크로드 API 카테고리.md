@@ -500,3 +500,105 @@ kubectl get replicasets
 
 CI/CD 파이프라인에서 롤백을 하는 경우 kubectl rollout 명령어보다 이전 매니페스트를 다시 kubectl apply 명령어로 실행하여 적용하는 것이 호환성 면에서 더 우수.
 이때 spec.template를 같은 내용으로 되돌렸을 경우 pod-template-hash 값이 같으므로 kubectl rollout처럼 기존에 있었던 레플리카셋의 파드가 기동
+
+### Deployment 변경 일시 중지
+일반적으로 디플로이먼트를 업데이트하면 바로 적용되어 업데이트 처리가 실행  
+즉시 적용을 일시 정지하고 싶을 때는 kubectl rollout pause 실행  
+다시 시작할 때는 kubectl rollout resume 실행
+
+```bash
+kubectl rollout pause deployment sample-deployment
+
+kubectl rollout resume deployment sample-deployment
+
+# pause 상태에서 컨테이너 이미지 업데이트
+kubectl set image deployment sample-deployment nginx-container=nginx:1.16
+
+# 업데이트가 대기 중
+kubectl rollout status deployment sample-deployment
+
+# pause 상태에선 롤백 불가. error 발생
+kubectl rollout undo deployment sample-deployment
+```
+
+### Deployment 업데이트 전략
+#### Recreate
+모든 파드를 한 번에 삭제하고 재생성하므로 다운타임이 발생하지만, 추가 리소스를 사용하지 않고 전환이 빠른 것이 장점  
+기존 레플리카셋의 레플리카 수를 0으로 하고 리소스를 반환. 이후 신규 레플리카셋을 생성하고 레플리카 수 증가
+
+sample-deployment-recreate.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-deployment-recreate
+spec:
+  strategy:
+    type: Recreate
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+```bash
+# 컨테이너 이미지 업데이트
+kubectl set image deployment sample-deployment-recreate nginx-container=nginx:1.17
+
+# 레플리카셋 목록 표시(상태 변화 있을 시 계속 출력)
+# 모든 파드가 존재하지 않는 기간 확인. 이때 일시적 서비스 중단 발생
+kubectl get replicas --watch
+```
+
+#### RollingUpdate
+maxUnavailable, maxSurge 설정 가능
+
+- maxUnavailable
+  - 업데이트 중에 동시에 정지 가능한 최대 파드 수
+- maxSurge
+  - 업데이트 중에 동시에 생성할 수 있는 최대 파드 수
+
+두 개 동시에 0으로 설정 불가  
+백분율로도 지정 가능. default 값은 각각 25%
+
+sample-deployment-rollingupdate.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-deployment-rollingupdate
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+```bash
+# 컨테이너 이미지 업데이트
+kubectl set image deployment sample-deployment-rollingupdate nginx-container=nginx:1.17
+
+# 레플리카셋 목록 표시(상태 변화 있을 시 계속 출력)
+# 신규 레플리카셋의 레플리카 수 증가 -> 기존 레플리카셋의 레플리카 수 감소. 이 과정을 반복
+# maxUnavailable=1/maxSurge=0일 경우 반대로 진행
+kubectl get replicas --watch
+```
