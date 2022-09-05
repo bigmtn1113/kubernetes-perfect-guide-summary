@@ -655,3 +655,45 @@ kubectl apply -f sample-deployment.yaml
 # kubectl scale 명령어 이용
 kubectl scale deployment sample-deployment --replicas=5
 ```
+
+<br/>
+
+## DaemonSet
+각 노드에 파드를 하나씩 배치하는 리소스  
+레플리카 수를 지정할 수 없고 하나의 노드에 두 개의 파드를 배치 불가  
+단, 파드를 배치하고 싶지 않은 노드가 있을 경우 nodeSelector나 노드 안티어피니티를 사용한 스케줄링으로 예외 처리 가능
+
+노드가 늘어나면 데몬셋의 파드는 자동으로 늘어난 노드에서 기동  
+그렇기 때문에 데몬셋은 각 파드가 출력하는 로그를 호스트 단위로 수집하는 Fluentd나 각 파드 리소스 사용 현황 및 노드 상태를 모니터링하는 Datadog 등 모든 노드에서 반드시 동작해야 하는 프로세스를 위해 사용하는 것이 유용
+
+### DaemonSet 생성
+레플리카 수 등을 지정할 수 있는 항목이 존재하지 않음
+
+sample-ds.yaml
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sample-ds
+spec:
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+```bash
+# 각 노드에 하나씩 파드가 기동됨을 확인
+kubectl get pods -o wide
+```
+
+### DaemonSet 업데이트 전략
+#### OnDelete
+데몬셋 매니페스트를 수정하여 이미지 등을 변경했더라도 기존 파드는 업데이트 되지 않음  
+모니터링이나 로그 전송과 같은 용도로 많이 사용하므로 업데이트는 다시 생성할 때나 수동으로 임의의 시점에 진행
