@@ -696,4 +696,56 @@ kubectl get pods -o wide
 ### DaemonSet 업데이트 전략
 #### OnDelete
 데몬셋 매니페스트를 수정하여 이미지 등을 변경했더라도 기존 파드는 업데이트 되지 않음  
-모니터링이나 로그 전송과 같은 용도로 많이 사용하므로 업데이트는 다시 생성할 때나 수동으로 임의의 시점에 진행
+모니터링이나 로그 전송과 같은 용도로 많이 사용하므로 업데이트는 파드를 다시 생성할 때나 수동으로 임의의 시점에 진행
+
+운영상의 이유로 정지하면 안 되는 파드이거나 업데이트가 급하지 않은 경우 OnDelete 설정으로 사용해도 되지만, 이전 버전이 장기간 사용된다는 점 주의
+
+sample-ds-ondelete.yaml
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: smaple-ds-ondelete
+spec:
+  updateStrategy:
+    type: OnDelete
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+
+#### RollingUpdate
+디플로이먼트와 달리 하나의 노드에 동일한 파드를 여러 개 생성할 수 없으므로 maxSurge 설정 불가  
+maxUnavailable만 지정하여 업데이트 수행. maxUnavailable 기본값은 1이며, 0으로 지정 불가
+
+sample-ds-rollingupdate.yaml
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: smaple-ds-rollingupdate
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 2
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
