@@ -749,3 +749,64 @@ spec:
       - name: nginx-container
         image: nginx:1.16
 ```
+
+<br/>
+
+## StatefulSet
+데이터베이스 등과 같은 스테이트풀한 워크로드에서 사용하기 위한 리소스
+
+레플리카셋과의 주된 차이점
+- 생성되는 파드명의 접미사는 숫자 인덱스가 부여된 것
+  - ex) sample-statefulset-0, sample-statefulset-1, ...
+  - 파드명이 변하지 않는다는 것이 특징
+- 데이터를 영구적으로 저장하기 위한 구조
+  - PersistentVolume을 사용하는 경우엔 파드 재기동 시 같은 디스크를 사용하여 재생성
+
+### StatefulSet 생성
+spec.volumeClainTemplates를 지정함으로써 각 파드에 영구 볼륨 클레임 설정 가능  
+영구 볼륨 클레임을 사용하면 클러스터 외부의 네트워크를 통해 제공되는 영구 볼륨을 파드에 연결 가능하므로,  파드를 재기동할 때나 다른 노드로 이동할 때 같은 데이터를 보유한 상태로 컨테이너 생성  
+영구 볼륨은 하나의 파드가 소유할 수도 있고, 영구 볼륨 종류에 따라 여러 파드에서 공유도 가능
+
+sample-statefulset.yaml
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sample-statefulset
+spec:
+  serviceName: sample-statefulset
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+        volumeMounts:
+        - name: www
+          mountPath: /ver/share/nginx/html
+        volumeClaimTemplates:
+        - metadata:
+            name: www
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1G
+```
+```bash
+# 파드명 인덱싱 확인
+kubectl get pod -o wide
+
+# 스테이트풀셋에서 사용하고 있는 영구 볼륨 클레임 및 volume 확인
+kubectl get persistentvolumeclaims
+
+# 스테이트풀셋에서 사용하고 있는 영구 볼륨 확인
+kubectl get persistentvolumes
+```
