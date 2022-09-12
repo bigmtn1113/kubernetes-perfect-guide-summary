@@ -810,3 +810,160 @@ kubectl get persistentvolumeclaims
 # 스테이트풀셋에서 사용하고 있는 영구 볼륨 확인
 kubectl get persistentvolumes
 ```
+
+### StatefulSet Scaling
+레플리카셋과 같은 방법인 kubectl apply -f 또는 kubectl scale을 사용하여 스케일링  
+레플리카셋이나 데몬셋 등과 달리 파드를 하나씩만 생성하고 삭제하므로 시간을 상대적으로 더 소모
+
+#### Scale Out
+- 인덱스가 가장 작은 것부터 파드를 하나씩 생성  
+- 이전에 생성된 파드가 Ready 상태가 되고 나서 다음 파드 생성
+
+#### Scale In
+- 인덱스가 가장 큰 파드부터 삭제  
+
+0번째 파드가 항상 가장 먼저 생성되고 가장 늦게 삭제  
+-> 0번째 파드를 마스터 노드로 사용하는 이중화 구조 애플리케이션에 적합. 레플리카셋은 파드를 무작위로 삭제하므로 부적합
+
+### StatefulSet Lifecycle
+spec.podManagementPolicy를 Parallel로 설정하여 레플리카셋 등처럼 병렬로 동시에 파드 기동 가능  
+기본값은 orderedReady
+
+sample-statefulset-parallel.yaml
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sample-statefulset-parallel
+spec:
+  podManagementPolicy: Parallel
+  serviceName: sample-statefulset-parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-controller
+        image: nginx:1.16
+```
+
+### StatefulSet 업데이트 전략
+디플로이먼트나 데몬셋처럼 업데이트 전략 두 가지 중에서 선택 가능
+
+#### OnDelete
+스테이트풀셋에서 OnDelete는 영속성 영역을 가진 데이터베이스나 클러스터 등에서 많이 사용
+
+sample-statefulset-ondelete.yaml
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sample-statefulset-ondelete
+spec:
+  updateStrategy:
+    type: OnDelete
+  serviceName: sample-statefulset-ondelete
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.16
+```
+
+#### RollingUpdate
+디플로이먼트처럼 RollingUpdate를 사용한 스테이트풀셋 업데이트가 가능하나 차이점 존재  
+- 스테이트풀셋에서는 영속성 데이터가 있으므로 디플로이먼트와 다르게 추가 파드를 생성해서 롤링 업데이트 불가  
+- maxUnavailable 지정하여 롤링 업데이트 불가하므로 파드마다 Ready 상태인지 확인 후 업데이트 진행  
+- spec.podManagementPolicy가 Parallel로 설정되어 있어도 병렬로 동시에 처리되지 않고 하나씩 업데이트 진행
+- partition 설정 가능
+  - 전체 파드 중 어떤 파드까지 업데이트할지 지정 가능
+  - 전체에 영향을 주지 않고 부분적으로 업데이트 적용 및 확인할 수 있어 안전한 업데이트 가능
+  - OnDelete와 달리 수동으로 재기동한 경우에도 partition 값보다 작은 인덱스를 가진 파드는 업데이트 되지 않음
+
+sample-statefulset-rollingupdate.yaml
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sample-statefulset-rollingupdate
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 3
+  serviceName: sample-statefulset-rollingupdate
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: nginx-controller
+        image: nginx:1.16
+```
+```bash
+# 이미지 수정 후, 인덱스가 3이상인 파드만 업데이트 되는지 확인
+kubectl get pods --watch
+
+# partition 값을 3에서 1로 변경 후, 인덱스가 1이상인 파드만 업데이트 되는지 확인
+kubectl get pods --watch
+```
+
+### 영구 볼륨 데이터 저장 확인
+```bash
+# 볼륨 마운트 여부 확인
+kubectl exec -it sample-statefulset-0 -- df -h
+
+# 영구 볼륨에 sample.html 생성
+kubectl exec -it sample-statefulset-0 -- touch /usr/share/nginx/html/sample.html
+
+# 테스트를 위해 파드 삭제
+kubectl delete pod sample-statefulset-0
+
+# 파드 정지, 복구 이후에도 파일이 저장되어 있는지 확인
+kubectl exec -it sample-statefulset-0 -- ls /usr/share/nginx/html/sample.html
+```
+
+### StatefulSet 및 영구 볼륨 삭제
+스테이트풀셋을 생성하면 파드에 영구 볼륨 클레임을 설정할 수 있어 영구 볼륨도 동시에 확보 가능  
+이렇게 확보한 영구 볼륨은 스테이트풀셋이 삭제되어도 유지되므로 스테이트풀셋을 다시 생성하면 영구 볼륨 데이터도 보존되어 있는 상태
+
+```bash
+kubectl delete statefulset sample-statefulset
+
+# 스테이트풀셋에 연결되는 영구 볼륨 클레임 확인
+kubectl get persistentvolumeclaims
+
+# 스테이트풀셋에 연결되는 영구 볼륨 확인
+kubectl get persistentvolumes
+
+kubectl apply -f statefulset.yaml
+
+# 영구 볼륨 데이터 확인
+kubectl exec -it sample-statefulset-0 -- ls /var/share/nginx/html/sample.html
+```
+
+스테이트풀셋을 삭제해도 영구 볼륨이 확보된 상태일 경우
+- 관리형 서비스의 종량 과금 방식인 경우 볼륨을 그대로 유지하면 비용 발생
+- 온프레미스 환경인 경우 디스크 공간이 확보된 상태로 유지
+
+스테이트풀셋을 삭제한 후에는 확보된 영구 볼륨 해제 필요
+```bash
+kubectl delete persistentvolumeclaims www-sample-statefulset-{0..2}
+```
