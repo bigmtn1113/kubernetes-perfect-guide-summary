@@ -967,3 +967,120 @@ kubectl exec -it sample-statefulset-0 -- ls /var/share/nginx/html/sample.html
 ```bash
 kubectl delete persistentvolumeclaims www-sample-statefulset-{0..2}
 ```
+
+<br/>
+
+## Job
+N개의 병렬로 실행하면서 지정한 횟수의 컨테이너 실행(정상 종료)을 보장하는 리소스
+
+### ReplicaSet과의 차이점과 Job의 용도
+#### ReplicaSet과의 차이점
+기동 중인 파드가 정지되는 것을 전제로 만들어졌는지 여부
+
+#### Job 용도
+배치 처리(일괄적으로 대량 건 처리)인 경우에 사용
+
+ex)  
+- 특정 서버와의 rsync
+- S3 등의 오브젝트 스토리지에 파일 업로드
+
+### Job 생성
+레플리카셋처럼 레이블과 셀렉터를 명시적으로 지정 가능하지만, K8s가 유니크한 uuid를 자동으로 생성하므로 권장하지 않음
+
+sample-job.yaml
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+      - name: tools-container
+        image: amsy810/tools:v2.0
+        command: ["sleep"]
+        args: ["60"]
+      restartPolicy: Never
+```
+```bash
+# 잡 목록 표시(생성 직후)
+# 정상 종료한 파드 수(COMPLETIONS) 표시
+kubectl get jobs
+
+# 잡이 생성한 파드 확인
+kubectl get pods --watch
+
+# 잡 목록 표시(파드 실행 완료 후)
+# 파드가 성공적으로 실행되고 종료 되었는지 확인. READY가 0/1, STATUS는 Completed
+kubectl get jobs
+```
+
+### restartPolicy에 따른 동작 차이
+#### Never
+잡 용도로 생성한 파드 내부 프로세스가 정지되면 신규 파드를 생성하여 잡을 계속 실행
+
+sample-job-never-restart.yaml
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-never-restart
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+      - name: tools-container
+        image: amsy810/tools:v2.0
+        command: ["sh", "-c"]
+        args: ["$(sleep 3600)"]
+      restartPolicy: Never
+```
+```bash
+kubectl get pods
+
+# 컨테이너상의 sleep 프로세스 정지
+kubectl exec -it sample-job-never-restart-5vhgd -- sh -c 'kill -9 `pgrep sleep`'
+
+# 생성된 파드 확인
+kubectl get pods
+```
+
+#### OnFailure
+잡 용도로 생성한 파드 내부 프로세스가 정지되면 RESTARTS 카운터가 증가하고, 사용했던 파드를 다시 사용하여 잡 실행  
+파드가 기동하는 노드나 파드 IP 주소는 변경되지 않지만, 영구 볼륨이나 K8s 노드의 hostPath를 마운트하지 않은 경우라면 데이터 유실
+
+sample-job-never-restart.yaml
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-onfailure-restart
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+      - name: tools-container
+        image: amsy810/tools:v2.0
+        command: ["sh", "-c"]
+        args: ["$(sleep 3600)"]
+      restartPolicy: OnFailure
+```
+```bash
+kubectl get pods
+
+# 컨테이너상의 sleep 프로세스 정지
+kubectl exec -it sample-job-onfailure-restart-cgzr9 -- sh -c 'kill -9 `pgrep sleep`'
+
+# 재시작 파드 확인
+kubectl get pods
+```
