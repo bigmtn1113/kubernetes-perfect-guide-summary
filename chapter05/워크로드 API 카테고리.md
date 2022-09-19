@@ -1,6 +1,6 @@
 # 워크로드 API 카테고리
 
-<br/>
+<br>
 
 **각 워크로드 API 카테고리로 분류된 리소스와 관계**  
 | **Tier 1** | **Tier 2** | **Tier 3** |
@@ -11,7 +11,7 @@
 | Pod | StatefullSet ||
 | Pod | Job | CronJab |
 
-<br/>
+<br>
 
 ## Pod
 워크로드 리소스의 최소 단위  
@@ -302,7 +302,7 @@ spec:
 kubectl exec -it sample-workingdir -- pwd
 ```
 
-<br/>
+<br>
 
 ## ReplicaSet/ReplicationController
 파드의 레플리카를 생성하고 지정한 파드 수를 유지하는 리소스  
@@ -382,7 +382,7 @@ kubectl scale replicaset sample-rs -- replicas 5
 kubectl get replicaset sample-rs
 ```
 
-<br/>
+<br>
 
 ## Deployment
 여러 레플리카셋을 관리하여 롤링 업데이트나 롤백 등을 구현하는 리소스  
@@ -656,7 +656,7 @@ kubectl apply -f sample-deployment.yaml
 kubectl scale deployment sample-deployment --replicas=5
 ```
 
-<br/>
+<br>
 
 ## DaemonSet
 각 노드에 파드를 하나씩 배치하는 리소스  
@@ -750,7 +750,7 @@ spec:
         image: nginx:1.16
 ```
 
-<br/>
+<br>
 
 ## StatefulSet
 데이터베이스 등과 같은 스테이트풀한 워크로드에서 사용하기 위한 리소스
@@ -968,7 +968,7 @@ kubectl exec -it sample-statefulset-0 -- ls /var/share/nginx/html/sample.html
 kubectl delete persistentvolumeclaims www-sample-statefulset-{0..2}
 ```
 
-<br/>
+<br>
 
 ## Job
 N개의 병렬로 실행하면서 지정한 횟수의 컨테이너 실행(정상 종료)을 보장하는 리소스
@@ -1116,4 +1116,53 @@ spec:
 # 60초 후에 잡이 종료, 종료 이후 30초가 지나면 잡이 삭제 되는지 확인
 # ADDED -> MODIFIED -> DELETED
 kubectl get job sample-job-ttl --watch --output-watch-events
+```
+
+<br>
+
+## CronJob
+디플로이먼트와 레플리카셋의 관계와 비슷  
+크론잡이 잡을 관리하고 잡이 파드를 관리하는 3계층 구조
+
+### 크론잡 생성
+spec.schedule에 Cron과 같은 형식으로 시간 지정 가능  
+다음 예제는 '1분마다 50% 확률로 성공하는 한 번만 실행되는 잡'을 생성하는 크론잡 생성 예제
+
+sample-cronjob.yaml
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sample-cronjob
+spec:
+  schedule: "*/1 * * * *
+  concurrencyPolicy: Allow
+  startingDeadlineSeconds: 30
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      completions: 1
+      parallelism: 1
+      backoffLimit: 0
+      template:
+        spec:
+          containers:
+          - name: tools-container
+            image: amsy810/random-exit:v2.0
+          restartPolicy: Never
+```
+```bash
+# 아직 잡이 생성되지 않아 ACTIVE한 잡이 존재하지 않은 상태
+kubectl get cronjobs
+
+# 스케줄 시간이 되지 않은 경우 잡이 존재하지 않음
+kubectl get jobs
+
+# 지정한 시간이 되면 크론잡이 잡을 생성. ACTIVE 확인
+kubectl get cronjobs
+
+# 크론잡이 생성한 잡 존재
+kubectl get jobs
 ```
