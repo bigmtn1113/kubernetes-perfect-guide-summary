@@ -987,6 +987,9 @@ ex)
 ### Job 생성
 레플리카셋처럼 레이블과 셀렉터를 명시적으로 지정 가능하지만, K8s가 유니크한 uuid를 자동으로 생성하므로 권장하지 않음
 
+성공 횟수를 지정하는 completions, 병렬성을 지정하는 parallelism, 실패 허용 횟수를 지정하는 backoffLimit  
+completions와 parallelism의 기본값은 1
+
 sample-job.yaml
 ```yaml
 apiVersion: batch/v1
@@ -1083,4 +1086,34 @@ kubectl exec -it sample-job-onfailure-restart-cgzr9 -- sh -c 'kill -9 `pgrep sle
 
 # 재시작 파드 확인
 kubectl get pods
+```
+
+### 일정 기간 후 Job 삭제
+잡은 종료 후에도 삭제되지 않고 계속 유지되므로 spec.ttlSecondsAfterFinished를 설정하여 잡이 종료한 후에 일정 기간(초) 경과 후 삭제되도록 설정 가능
+
+sample-job-ttl.yaml  
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-job-ttl
+spec:
+  ttlSecondsAfterFinished: 30
+  completions: 1
+  parallelism: 1
+  backoffLimit: 10
+  template:
+    spec:
+      containers:
+      - name: tools-container
+        image: amsy810/tools:v2.0
+        command: ["sleep"]
+        args: ["60"]
+      restartPolicy: Never
+```
+```bash
+# Job 상태 모니터링
+# 60초 후에 잡이 종료, 종료 이후 30초가 지나면 잡이 삭제 되는지 확인
+# ADDED -> MODIFIED -> DELETED
+kubectl get job sample-job-ttl --watch --output-watch-events
 ```
