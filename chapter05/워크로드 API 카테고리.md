@@ -1166,3 +1166,13 @@ kubectl get cronjobs
 # 크론잡이 생성한 잡 존재
 kubectl get jobs
 ```
+
+### CronJob 일시 정지
+점검이나 어떤 이유로 잡 생성을 원하지 않을 경우에 suspend(일시 정지) 가능  
+spec.suspend가 true로 설정되어 있으면 스케줄 대상에서 제외(기본값은 false)
+
+```bash
+# spec.suspend를 true로 설정하고 진행
+# SUSPEND True 확인
+kubectl get cronjobs
+```
