@@ -1199,3 +1199,38 @@ spec.startingDeadlineSeconds에 지정
 spec.schedule = "00 * * * *"
 spec.startingDeadlineSeconds = 300
 ```
+
+### 크론잡 이력
+크론잡이 생성할 잡을 몇 개 유지할지 지정하는 설정값  
+- spec.successfulJobsHistoryLimit
+  - 성공한 잡을 저장하는 개수
+- spec.failedJobsHistoryLimit
+  - 실패한 잡을 저장하는 개수
+
+두 설정값을 0으로 설정한 경우 잡은 종료 시 즉시 삭제(기본값은 둘다 3)
+
+잡이 남아 있다는 것은 잡에 연결되어 있는 파드도 남아 있고 kubectl log 명령어로 로그 확인이 가능하다는 뜻  
+※ 그러나 로그를 별도 로그 시스템으로 수집하면 kubectl 명령어로 로그를 확인할 필요가 없고 가용성이 높은 환경에 로그 저장 가능
+
+```bash
+# 크론잡 생성
+kubectl apply -f sample-cronjob.yaml
+
+# 크론잡이 생성한 잡 확인(일정 시간 경과 후)
+# 성공한 jobs, 실패한 jobs 확인
+kubectl get jobs
+
+# 잡이 생성한 파드 확인(일정 시간 경과 후)
+# Completed, Error 상태 pods 확인
+kubectl get pods
+
+# 실패한 잡의 파드 확인. Failed
+kubectl logs sample-cronjob-1617025440-24nzx
+
+# 성공한 잡의 파드 확인. Succeeded
+kubectl logs sample-cronjob-1617025320-gkdz8
+```
+잡 리소스가 남아 있기 때문에 잡에 연결된 파드도 유지
+
+쿠버네티스 대시보드 등과 함께 사용하면 젠킨스처럼 잡의 실행 결과나 로그를 UI에서 확인 가능  
+이러한 방법을 사용하는 경우 JobsHistoryLimit은 큰 값으로 설정 권장
