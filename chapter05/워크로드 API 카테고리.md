@@ -1188,3 +1188,14 @@ kubectl get cronjobs
 - Replace
   - 이전 잡이 실행 중인 경우 이전 잡을 중지하고 신규 잡 생성
   - 이전 잡의 레플리카 수를 0으로 변경하여 이전 잡에 연결된 파드 삭제
+
+### 실행 시작 기한 제어
+크론잡은 지정한 시간이 되면 K8s 마스터가 잡을 생성하는데, K8s 마스터가 일시적으로 정지되는 경우 등과 같이 시작 시간이 지연되면 그 지연 시간을 허용하는 시간(초) 지정 가능
+
+spec.startingDeadlineSeconds에 지정
+
+```yaml
+# 매시 00분에 시작하는 잡을 '매시 00~05분에만 실행 가능'으로 설정
+spec.schedule = "00 * * * *"
+spec.startingDeadlineSeconds = 300
+```
